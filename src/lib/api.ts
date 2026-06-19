@@ -1,4 +1,9 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as _supabase } from "@/integrations/supabase/client";
+
+// Types haven't been generated for these tables yet — use untyped client.
+const supabase = _supabase as unknown as {
+  from: (table: string) => any;
+};
 
 export type Service = {
   id: number;
@@ -25,27 +30,28 @@ export type ModelPricing = {
 
 export async function fetchApplications(): Promise<Application[]> {
   const { data: apps, error } = await supabase
-    .from("applications" as never)
+    .from("applications")
     .select("id, name, description")
     .order("id", { ascending: true });
   if (error) throw error;
   const { data: svcs, error: e2 } = await supabase
-    .from("services" as never)
+    .from("services")
     .select("id, app_id, name, input_words, output_words, ratio")
     .order("id", { ascending: true });
   if (e2) throw e2;
   const byApp: Record<number, Service[]> = {};
-  (svcs as unknown as Service[]).forEach((s) => {
+  (svcs as Service[]).forEach((s) => {
     (byApp[s.app_id] ||= []).push(s);
   });
-  return (apps as unknown as { id: number; name: string; description: string | null }[]).map(
-    (a) => ({ ...a, services: byApp[a.id] ?? [] }),
-  );
+  return (apps as { id: number; name: string; description: string | null }[]).map((a) => ({
+    ...a,
+    services: byApp[a.id] ?? [],
+  }));
 }
 
 export async function createApplication(input: { name: string; description: string }) {
   const { data, error } = await supabase
-    .from("applications" as never)
+    .from("applications")
     .insert({ name: input.name, description: input.description })
     .select()
     .single();
@@ -54,7 +60,7 @@ export async function createApplication(input: { name: string; description: stri
 }
 
 export async function deleteApplication(id: number) {
-  const { error } = await supabase.from("applications" as never).delete().eq("id", id);
+  const { error } = await supabase.from("applications").delete().eq("id", id);
   if (error) throw error;
 }
 
@@ -66,7 +72,7 @@ export async function createService(input: {
 }) {
   const ratio = input.input_words > 0 ? input.output_words / input.input_words : 0;
   const { data, error } = await supabase
-    .from("services" as never)
+    .from("services")
     .insert({ ...input, ratio })
     .select()
     .single();
@@ -80,7 +86,7 @@ export async function updateService(
 ) {
   const ratio = input.input_words > 0 ? input.output_words / input.input_words : 0;
   const { data, error } = await supabase
-    .from("services" as never)
+    .from("services")
     .update({ ...input, ratio })
     .eq("id", id)
     .select()
@@ -90,17 +96,17 @@ export async function updateService(
 }
 
 export async function deleteService(id: number) {
-  const { error } = await supabase.from("services" as never).delete().eq("id", id);
+  const { error } = await supabase.from("services").delete().eq("id", id);
   if (error) throw error;
 }
 
 export async function fetchPricing(): Promise<ModelPricing[]> {
   const { data, error } = await supabase
-    .from("model_pricing" as never)
+    .from("model_pricing")
     .select("id, model_name, input_price, output_price")
     .order("model_name", { ascending: true });
   if (error) throw error;
-  return data as unknown as ModelPricing[];
+  return data as ModelPricing[];
 }
 
 export async function createPricing(input: {
@@ -109,7 +115,7 @@ export async function createPricing(input: {
   output_price: number;
 }) {
   const { data, error } = await supabase
-    .from("model_pricing" as never)
+    .from("model_pricing")
     .insert(input)
     .select()
     .single();
@@ -122,7 +128,7 @@ export async function updatePricing(
   input: { model_name: string; input_price: number; output_price: number },
 ) {
   const { data, error } = await supabase
-    .from("model_pricing" as never)
+    .from("model_pricing")
     .update(input)
     .eq("id", id)
     .select()
@@ -132,7 +138,7 @@ export async function updatePricing(
 }
 
 export async function deletePricing(id: number) {
-  const { error } = await supabase.from("model_pricing" as never).delete().eq("id", id);
+  const { error } = await supabase.from("model_pricing").delete().eq("id", id);
   if (error) throw error;
 }
 
