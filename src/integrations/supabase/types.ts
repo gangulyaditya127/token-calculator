@@ -14,7 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      applications: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      model_pricing: {
+        Row: {
+          created_at: string
+          id: number
+          input_price: number
+          model_name: string
+          output_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          input_price: number
+          model_name: string
+          output_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          input_price?: number
+          model_name?: string
+          output_price?: number
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          app_id: number
+          created_at: string
+          id: number
+          input_words: number
+          name: string
+          output_words: number
+          ratio: number
+        }
+        Insert: {
+          app_id: number
+          created_at?: string
+          id?: number
+          input_words: number
+          name: string
+          output_words: number
+          ratio: number
+        }
+        Update: {
+          app_id?: number
+          created_at?: string
+          id?: number
+          input_words?: number
+          name?: string
+          output_words?: number
+          ratio?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
