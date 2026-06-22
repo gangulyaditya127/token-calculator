@@ -26,7 +26,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Coins, Zap, Wallet } from "lucide-react";
+import { Coins, Zap, Wallet, Download } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -49,6 +51,7 @@ function CalculatorPage() {
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [numRequests, setNumRequests] = useState<number>(1);
   const [serviceInputs, setServiceInputs] = useState<Record<number, string>>({});
+  const [showAllModels, setShowAllModels] = useState<boolean>(false);
 
   useEffect(() => {
     if (pricing.data && pricing.data.length > 0 && !selectedModel) {
@@ -100,6 +103,61 @@ function CalculatorPage() {
   const inputCost = modelData ? totalInputTokens * modelData.input_price : 0;
   const outputCost = modelData ? totalOutputTokens * modelData.output_price : 0;
   const totalCost = inputCost + outputCost;
+
+  const modelBreakdown = (pricing.data ?? []).map((m) => {
+    const ic = totalInputTokens * m.input_price;
+    const oc = totalOutputTokens * m.output_price;
+    return {
+      id: m.id,
+      model_name: m.model_name,
+      input_price: m.input_price,
+      output_price: m.output_price,
+      inputCost: ic,
+      outputCost: oc,
+      totalCost: ic + oc,
+    };
+  }).sort((a, b) => a.totalCost - b.totalCost);
+
+  const downloadReport = () => {
+    if (!selectedApp) return;
+    const esc = (v: string | number) => {
+      const s = String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines: string[] = [];
+    lines.push(`Token & Cost Estimation Report`);
+    lines.push(`Application,${esc(selectedApp.name)}`);
+    lines.push(`Number of requests,${numRequests}`);
+    lines.push(`Token-to-word ratio,${TOKEN_WORD_RATIO}`);
+    lines.push("");
+    lines.push("Service breakdown (per request)");
+    lines.push("Service,Input words,Output words,Input tokens,Output tokens");
+    rows.forEach((r) =>
+      lines.push(
+        [r.name, r.inputWords, r.outputWords.toFixed(0), Math.round(r.inputTokens), Math.round(r.outputTokens)]
+          .map(esc).join(","),
+      ),
+    );
+    lines.push("");
+    lines.push(`Total input tokens (x${numRequests}),${Math.round(totalInputTokens)}`);
+    lines.push(`Total output tokens (x${numRequests}),${Math.round(totalOutputTokens)}`);
+    lines.push("");
+    lines.push("Model-wise estimated cost");
+    lines.push("Model,Input $/token,Output $/token,Input cost,Output cost,Total cost");
+    modelBreakdown.forEach((m) =>
+      lines.push(
+        [m.model_name, m.input_price, m.output_price, m.inputCost.toFixed(6), m.outputCost.toFixed(6), m.totalCost.toFixed(6)]
+          .map(esc).join(","),
+      ),
+    );
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cost-report-${selectedApp.name.replace(/\s+/g, "_")}-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <AppShell>
@@ -250,6 +308,76 @@ function CalculatorPage() {
                     : "Select a model"
                 }
               />
+            </section>
+
+            <section className="card-elevated">
+              <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    id="show-all-models"
+                    checked={showAllModels}
+                    onCheckedChange={setShowAllModels}
+                  />
+                  <Label htmlFor="show-all-models" className="cursor-pointer">
+                    Show model-wise estimated cost
+                  </Label>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={downloadReport}
+                  className="gap-2"
+                >
+                  <Download className="size-4" />
+                  Download report
+                </Button>
+              </div>
+              {showAllModels && (
+                modelBreakdown.length === 0 ? (
+                  <div className="p-8 text-center text-sm text-muted-foreground">
+                    No models configured. Add pricing on the Pricing page.
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead>Model</TableHead>
+                        <TableHead className="text-right">Input cost</TableHead>
+                        <TableHead className="text-right">Output cost</TableHead>
+                        <TableHead className="text-right">Total cost</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {modelBreakdown.map((m) => (
+                        <TableRow
+                          key={m.id}
+                          className={
+                            m.model_name === selectedModel ? "bg-primary/5" : ""
+                          }
+                        >
+                          <TableCell className="font-medium">
+                            {m.model_name}
+                            {m.model_name === selectedModel && (
+                              <span className="ml-2 text-[10px] uppercase tracking-wider text-primary">
+                                selected
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right number-mono text-muted-foreground">
+                            ${m.inputCost.toFixed(4)}
+                          </TableCell>
+                          <TableCell className="text-right number-mono text-muted-foreground">
+                            ${m.outputCost.toFixed(4)}
+                          </TableCell>
+                          <TableCell className="text-right number-mono font-semibold">
+                            ${m.totalCost.toFixed(4)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )
+              )}
             </section>
           </>
         ) : (
