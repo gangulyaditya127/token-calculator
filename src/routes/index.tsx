@@ -104,6 +104,61 @@ function CalculatorPage() {
   const outputCost = modelData ? totalOutputTokens * modelData.output_price : 0;
   const totalCost = inputCost + outputCost;
 
+  const modelBreakdown = (pricing.data ?? []).map((m) => {
+    const ic = totalInputTokens * m.input_price;
+    const oc = totalOutputTokens * m.output_price;
+    return {
+      id: m.id,
+      model_name: m.model_name,
+      input_price: m.input_price,
+      output_price: m.output_price,
+      inputCost: ic,
+      outputCost: oc,
+      totalCost: ic + oc,
+    };
+  }).sort((a, b) => a.totalCost - b.totalCost);
+
+  const downloadReport = () => {
+    if (!selectedApp) return;
+    const esc = (v: string | number) => {
+      const s = String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines: string[] = [];
+    lines.push(`Token & Cost Estimation Report`);
+    lines.push(`Application,${esc(selectedApp.name)}`);
+    lines.push(`Number of requests,${numRequests}`);
+    lines.push(`Token-to-word ratio,${TOKEN_WORD_RATIO}`);
+    lines.push("");
+    lines.push("Service breakdown (per request)");
+    lines.push("Service,Input words,Output words,Input tokens,Output tokens");
+    rows.forEach((r) =>
+      lines.push(
+        [r.name, r.inputWords, r.outputWords.toFixed(0), Math.round(r.inputTokens), Math.round(r.outputTokens)]
+          .map(esc).join(","),
+      ),
+    );
+    lines.push("");
+    lines.push(`Total input tokens (x${numRequests}),${Math.round(totalInputTokens)}`);
+    lines.push(`Total output tokens (x${numRequests}),${Math.round(totalOutputTokens)}`);
+    lines.push("");
+    lines.push("Model-wise estimated cost");
+    lines.push("Model,Input $/token,Output $/token,Input cost,Output cost,Total cost");
+    modelBreakdown.forEach((m) =>
+      lines.push(
+        [m.model_name, m.input_price, m.output_price, m.inputCost.toFixed(6), m.outputCost.toFixed(6), m.totalCost.toFixed(6)]
+          .map(esc).join(","),
+      ),
+    );
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cost-report-${selectedApp.name.replace(/\s+/g, "_")}-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <AppShell>
       <div className="space-y-8">
