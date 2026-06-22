@@ -309,6 +309,76 @@ function CalculatorPage() {
                 }
               />
             </section>
+
+            <section className="card-elevated">
+              <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    id="show-all-models"
+                    checked={showAllModels}
+                    onCheckedChange={setShowAllModels}
+                  />
+                  <Label htmlFor="show-all-models" className="cursor-pointer">
+                    Show model-wise estimated cost
+                  </Label>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={downloadReport}
+                  className="gap-2"
+                >
+                  <Download className="size-4" />
+                  Download report
+                </Button>
+              </div>
+              {showAllModels && (
+                modelBreakdown.length === 0 ? (
+                  <div className="p-8 text-center text-sm text-muted-foreground">
+                    No models configured. Add pricing on the Pricing page.
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead>Model</TableHead>
+                        <TableHead className="text-right">Input cost</TableHead>
+                        <TableHead className="text-right">Output cost</TableHead>
+                        <TableHead className="text-right">Total cost</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {modelBreakdown.map((m) => (
+                        <TableRow
+                          key={m.id}
+                          className={
+                            m.model_name === selectedModel ? "bg-primary/5" : ""
+                          }
+                        >
+                          <TableCell className="font-medium">
+                            {m.model_name}
+                            {m.model_name === selectedModel && (
+                              <span className="ml-2 text-[10px] uppercase tracking-wider text-primary">
+                                selected
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right number-mono text-muted-foreground">
+                            ${m.inputCost.toFixed(4)}
+                          </TableCell>
+                          <TableCell className="text-right number-mono text-muted-foreground">
+                            ${m.outputCost.toFixed(4)}
+                          </TableCell>
+                          <TableCell className="text-right number-mono font-semibold">
+                            ${m.totalCost.toFixed(4)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )
+              )}
+            </section>
           </>
         ) : (
           <section className="card-elevated p-12 text-center">
