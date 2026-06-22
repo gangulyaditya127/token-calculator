@@ -51,6 +51,7 @@ function CalculatorPage() {
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [numRequests, setNumRequests] = useState<number>(1);
   const [serviceInputs, setServiceInputs] = useState<Record<number, string>>({});
+  const [showAllModels, setShowAllModels] = useState<boolean>(false);
 
   useEffect(() => {
     if (pricing.data && pricing.data.length > 0 && !selectedModel) {
